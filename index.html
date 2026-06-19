@@ -469,11 +469,13 @@ let obj={
 
 id:
 id.value
-?
-Number(id.value)
-:
-Date.now(),
-
+? Number(id.value)
+: (
+    users.length
+      ? Math.max(...users.map(u => u.id)) + 1
+      : 1
+),
+  
 username:
 username.value,
 
