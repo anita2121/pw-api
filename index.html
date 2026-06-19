@@ -1,460 +1,587 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Kelola User - Vanilla CRUD</title>
-    <style>
-        /* --- RESET & BASE STYLES --- */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
-            color: #1f2937;
-            line-height: 1.5;
-            padding: 1rem;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-        /* --- LAYOUT & CONTAINER (Responsif) --- */
-        .container {
-            max-width: 1000px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        
-        header {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 1.25rem;
-        }
-        @media (min-width: 640px) {
-            header {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-            }
-        }
+<title>User Management Dashboard</title>
 
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #111827;
-        }
-        .subtitle {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
-        }
+<style>
+:root{
+--bg:#0f172a;
+--card:rgba(255,255,255,.08);
+--border:rgba(255,255,255,.12);
+--primary:#7c3aed;
+--secondary:#06b6d4;
+--text:#fff;
+--muted:#94a3b8;
+--danger:#ef4444;
+--radius:20px;
+}
 
-        /* --- BUTTONS --- */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.625rem 1.25rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            border-radius: 0.5rem;
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s;
-            width: 100%;
-        }
-        @media (min-width: 640px) {
-            .btn { width: auto; }
-        }
-        .btn-primary {
-            background-color: #2563eb;
-            color: white;
-        }
-        .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-secondary {
-            background-color: white;
-            border-color: #d1d5db;
-            color: #374151;
-        }
-        .btn-secondary:hover { background-color: #f9fafb; }
-        
-        /* Table Action Buttons */
-        .btn-link {
-            background: none;
-            border: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            padding: 0 0.25rem;
-        }
-        .btn-edit { color: #2563eb; }
-        .btn-edit:hover { color: #1d4ed8; text-decoration: underline; }
-        .btn-delete { color: #dc2626; }
-        .btn-delete:hover { color: #b91c1c; text-decoration: underline; }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Inter,system-ui;
+}
 
-        /* --- DATA TABLE (Responsif dengan Wrapper) --- */
-        .table-responsive {
-            width: 100%;
-            background: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e5e7eb;
-            overflow-x: auto; /* Kunci responsifitas tabel */
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 0.875rem;
-            min-width: 600px; /* Mencegah tabel gepeng di layar kecil */
-        }
-        th, td {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        th {
-            background-color: #f9fafb;
-            font-weight: 600;
-            color: #4b5563;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background-color: #f9fafb; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; color: #9ca3af; }
+body{
+background:
+radial-gradient(circle at top left,#7c3aed 0%,transparent 30%),
+radial-gradient(circle at bottom right,#06b6d4 0%,transparent 30%),
+var(--bg);
 
-        /* --- BADGES (Role) --- */
-        .badge {
-            display: inline-flex;
-            padding: 0.25rem 0.625rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-            border-radius: 9999px;
-            border: 1px solid transparent;
-        }
-        .badge-admin { background-color: #fef2f2; color: #991b1b; border-color: #fee2e2; }
-        .badge-editor { background-color: #fffbeb; color: #92400e; border-color: #fef3c7; }
-        .badge-user { background-color: #f0fdf4; color: #166534; border-color: #dcfce7; }
+color:var(--text);
+min-height:100vh;
+padding:30px;
+}
 
-        /* --- MODAL DIALOG --- */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(17, 24, 39, 0.5);
-            display: none; /* Dikontrol via JS (flex/none) */
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            z-index: 1000;
-        }
-        .modal-wrapper {
-            background: white;
-            border-radius: 0.75rem;
-            width: 100%;
-            max-width: 450px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-            overflow: hidden;
-            transform: scale(0.95);
-            opacity: 0;
-            transition: transform 0.2s ease, opacity 0.2s ease;
-        }
-        /* State animasi modal */
-        .modal-overlay.active { display: flex; }
-        .modal-overlay.active .modal-wrapper { transform: scale(1); opacity: 1; }
+.container{
+display:grid;
+grid-template-columns:350px 1fr;
+gap:24px;
+}
 
-        .modal-header {
-            padding: 1rem 1.5rem;
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .modal-header h3 { font-size: 1.125rem; font-weight: 600; }
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #9ca3af;
-        }
-        .modal-close:hover { color: #4b5563; }
+@media(max-width:900px){
+.container{
+grid-template-columns:1fr;
+}
+}
 
-        /* --- FORM CONTROLS --- */
-        form { padding: 1.5rem; }
-        .form-group { margin-bottom: 1.25rem; }
-        .form-group label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #4b5563;
-            margin-bottom: 0.375rem;
-            letter-spacing: 0.05em;
-        }
-        .form-control {
-            width: 100%;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .form-control:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-        .modal-footer {
-            padding-top: 1.25rem;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-            margin-top: 1.75rem;
-        }
-    </style>
+.card{
+background:var(--card);
+backdrop-filter:blur(14px);
+border:1px solid var(--border);
+border-radius:var(--radius);
+padding:24px;
+}
+
+h2{
+margin-bottom:20px;
+}
+
+.input{
+width:100%;
+padding:14px;
+margin-bottom:14px;
+
+background:rgba(255,255,255,.06);
+border:1px solid var(--border);
+
+color:white;
+border-radius:12px;
+}
+
+.input:focus{
+outline:none;
+border-color:var(--secondary);
+}
+
+.btn{
+border:none;
+cursor:pointer;
+
+padding:14px;
+
+width:100%;
+border-radius:12px;
+
+font-weight:600;
+
+transition:.25s;
+}
+
+.primary{
+background:linear-gradient(
+90deg,
+var(--primary),
+var(--secondary)
+);
+
+color:white;
+}
+
+.primary:hover{
+transform:translateY(-2px);
+}
+
+.cancel{
+background:transparent;
+color:#cbd5e1;
+margin-top:10px;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:14px;
+
+margin-bottom:20px;
+}
+
+.stat{
+padding:18px;
+
+border-radius:16px;
+
+background:rgba(255,255,255,.05);
+}
+
+.stat small{
+color:var(--muted);
+}
+
+.stat h1{
+margin-top:6px;
+}
+
+.toolbar{
+display:flex;
+justify-content:space-between;
+
+margin-bottom:20px;
+gap:10px;
+}
+
+.search{
+flex:1;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th{
+text-align:left;
+padding:14px;
+
+color:var(--muted);
+}
+
+td{
+padding:16px 14px;
+
+border-top:1px solid rgba(255,255,255,.08);
+}
+
+tr:hover{
+background:rgba(255,255,255,.04);
+}
+
+.role{
+padding:8px 12px;
+
+border-radius:999px;
+
+font-size:13px;
+}
+
+.admin{
+background:#4c1d95;
+}
+
+.user{
+background:#064e3b;
+}
+
+.actions{
+display:flex;
+gap:8px;
+}
+
+.small{
+padding:8px 12px;
+width:auto;
+}
+
+.edit{
+background:#06b6d4;
+}
+
+.delete{
+background:var(--danger);
+}
+
+.empty{
+padding:40px;
+text-align:center;
+color:var(--muted);
+}
+</style>
 </head>
+
 <body>
 
-    <div class="container">
-        <header>
-            <div>
-                <h1>Manajemen Pengguna</h1>
-                <div class="subtitle">Kelola data login, email, dan role user secara realtime.</div>
-            </div>
-            <button id="btn-open-modal" class="btn btn-primary">+ Tambah User Baru</button>
-        </header>
+<div class="container">
 
-        <main class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th class="text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="user-table-body">
-                    </tbody>
-            </table>
-        </main>
-    </div>
+<div class="card">
 
-    <div id="user-modal" class="modal-overlay">
-        <div class="modal-wrapper">
-            <div class="modal-header">
-                <h3 id="modal-title">Tambah User</h3>
-                <button id="btn-close-modal" class="modal-close">&times;</button>
-            </div>
-            <form id="user-form">
-                <input type="hidden" id="form-user-id">
-                
-                <div class="form-group">
-                    <label for="form-username">Username</label>
-                    <input type="text" id="form-username" class="form-control" required autocomplete="off">
-                </div>
-                
-                <div class="form-group">
-                    <label for="form-email">Email</label>
-                    <input type="email" id="form-email" class="form-control" required autocomplete="off">
-                </div>
-                
-                <div class="form-group">
-                    <label for="form-role">Role</label>
-                    <select id="form-role" class="form-control">
-                        <option value="User">User</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Editor">Editor</option>
-                    </select>
-                </div>
+<h2 id="title">Tambah User</h2>
 
-                <div class="modal-footer">
-                    <button type="button" id="btn-cancel-modal" class="btn btn-secondary">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
+<form id="form">
 
-    <script type="module">
-        
-        /**
-         * 1. DATA LAYER (Membaca API JSON & Mengelola State Lokal)
-         */
-        const UserService = {
-            API_URL: './users.json',
-            
-            async initData() {
-                if (!localStorage.getItem('vanilla_users')) {
-                    try {
-                        const response = await fetch(this.API_URL);
-                        if (!response.ok) throw new Error('Koneksi data gagal.');
-                        const data = await response.json();
-                        localStorage.setItem('vanilla_users', JSON.stringify(data));
-                    } catch (error) {
-                        console.error('Inisialisasi API Gagal:', error);
-                        localStorage.setItem('vanilla_users', JSON.stringify([]));
-                    }
-                }
-            },
+<input type="hidden" id="id">
 
-            getAll() {
-                return JSON.parse(localStorage.getItem('vanilla_users')) || [];
-            },
+<input
+class="input"
+id="username"
+placeholder="Username"
+required
+>
 
-            getById(id) {
-                return this.getAll().find(user => user.id === parseInt(id));
-            },
+<input
+class="input"
+type="email"
+id="email"
+placeholder="Email"
+required
+>
 
-            save(user) {
-                const users = this.getAll();
-                if (user.id) {
-                    // Logika Update (DRY)
-                    const index = users.findIndex(u => u.id === parseInt(user.id));
-                    if (index !== -1) users[index] = { ...users[index], ...user, id: parseInt(user.id) };
-                } else {
-                    // Logika Create (Auto Increment ID)
-                    user.id = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
-                    users.push(user);
-                }
-                localStorage.setItem('vanilla_users', JSON.stringify(users));
-                return true;
-            },
+<select
+id="role"
+class="input"
+>
+<option>User</option>
+<option>Admin</option>
+</select>
 
-            delete(id) {
-                const users = this.getAll().filter(user => user.id !== parseInt(id));
-                localStorage.setItem('vanilla_users', JSON.stringify(users));
-                return true;
-            }
-        };
+<button class="btn primary">
+Simpan
+</button>
 
-        /**
-         * 2. UI RENDERER LAYER (Manipulasi DOM & Konsistensi Tampilan)
-         */
-        const UI = {
-            tableBody: document.getElementById('user-table-body'),
-            modal: document.getElementById('user-modal'),
-            form: document.getElementById('user-form'),
-            modalTitle: document.getElementById('modal-title'),
+<button
+type="button"
+class="btn cancel"
+id="cancel"
+style="display:none"
+>
+Batal
+</button>
 
-            renderTable(users) {
-                if (users.length === 0) {
-                    this.tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="text-center">Belum ada data user tersedia.</td>
-                        </tr>`;
-                    return;
-                }
+</form>
 
-                // Me-render baris tabel secara konsisten dengan Vanilla CSS Badge
-                this.tableBody.innerHTML = users.map(user => `
-                    <tr>
-                        <td style="font-family: monospace; color: #9ca3af;">#${user.id}</td>
-                        <td style="font-weight: 500;">${user.username}</td>
-                        <td>${user.email}</td>
-                        <td>
-                            <span class="badge badge-${user.role.toLowerCase()}">${user.role}</span>
-                        </td>
-                        <td class="text-right">
-                            <button data-id="${user.id}" class="btn-link btn-edit">Edit</button>
-                            <button data-id="${user.id}" class="btn-link btn-delete">Hapus</button>
-                        </td>
-                    </tr>
-                `).join('');
-            },
+</div>
 
-            toggleModal(show = true, title = 'Tambah User') {
-                this.modalTitle.innerText = title;
-                if (show) {
-                    this.modal.classList.add('active');
-                } else {
-                    this.modal.classList.remove('active');
-                    this.form.reset();
-                    document.getElementById('form-user-id').value = '';
-                }
-            },
 
-            fillForm(user) {
-                document.getElementById('form-user-id').value = user.id;
-                document.getElementById('form-username').value = user.username;
-                document.getElementById('form-email').value = user.email;
-                document.getElementById('form-role').value = user.role;
-            }
-        };
+<div>
 
-        /**
-         * 3. CONTROLLER LAYER (Alur Logika Jalannya Aplikasi)
-         */
-        async function App() {
-            // Ambil data awal dari fetch JSON
-            await UserService.initData();
-            
-            // Render UI pertama kali
-            const refreshUI = () => UI.renderTable(UserService.getAll());
-            refreshUI();
+<div class="stats">
 
-            // Aksi Buka Modal
-            document.getElementById('btn-open-modal').addEventListener('click', () => {
-                UI.toggleModal(true, 'Tambah User Baru');
-            });
+<div class="stat">
+<small>Total User</small>
+<h1 id="total">0</h1>
+</div>
 
-            // Aksi Tutup Modal (Gruping ID untuk memangkas duplikasi baris kode)
-            ['btn-close-modal', 'btn-cancel-modal'].forEach(id => {
-                document.getElementById(id).addEventListener('click', () => UI.toggleModal(false));
-            });
+<div class="stat">
+<small>Admin</small>
+<h1 id="admins">0</h1>
+</div>
 
-            // Simpan Data (Create / Update)
-            UI.form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const userData = {
-                    id: document.getElementById('form-user-id').value,
-                    username: document.getElementById('form-username').value,
-                    email: document.getElementById('form-email').value,
-                    role: document.getElementById('form-role').value
-                };
+<div class="stat">
+<small>User</small>
+<h1 id="users">0</h1>
+</div>
 
-                if (UserService.save(userData)) {
-                    UI.toggleModal(false);
-                    refreshUI();
-                }
-            });
+</div>
 
-            // Event Delegation (Scalable: Mengikat handler klik langsung pada induk tabel)
-            UI.tableBody.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
-                if (!id) return;
 
-                if (e.target.classList.contains('btn-edit')) {
-                    const user = UserService.getById(id);
-                    if (user) {
-                        UI.fillForm(user);
-                        UI.toggleModal(true, `Edit User: ${user.username}`);
-                    }
-                }
+<div class="card">
 
-                if (e.target.classList.contains('btn-delete')) {
-                    if (confirm(`Apakah Anda yakin ingin menghapus user dengan ID #${id}?`)) {
-                        UserService.delete(id);
-                        refreshUI();
-                    }
-                }
-            });
-        }
+<div class="toolbar">
 
-        // Jalankan Aplikasi setelah DOM siap
-        document.addEventListener('DOMContentLoaded', App);
-    </script>
+<h2>Dashboard User</h2>
+
+<input
+class="input search"
+id="search"
+placeholder="Cari user..."
+>
+
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Username</th>
+<th>Email</th>
+<th>Role</th>
+<th>Aksi</th>
+</tr>
+</thead>
+
+<tbody id="tbody"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+const Store={
+
+KEY:"modern_users",
+
+async get(){
+
+let data=localStorage.getItem(this.KEY)
+
+if(!data){
+
+const res=await fetch("users.json")
+
+data=await res.json()
+
+localStorage.setItem(
+this.KEY,
+JSON.stringify(data)
+)
+
+return data
+}
+
+return JSON.parse(data)
+
+},
+
+save(data){
+localStorage.setItem(
+this.KEY,
+JSON.stringify(data)
+)
+}
+
+}
+
+
+const UI={
+
+async render(){
+
+const users=
+await Store.get()
+
+const keyword=
+search.value.toLowerCase()
+
+const filtered=
+users.filter(
+u=>
+u.username
+.toLowerCase()
+.includes(keyword)
+)
+
+tbody.innerHTML=
+filtered.length
+?
+filtered.map(u=>`
+
+<tr>
+
+<td>${u.id}</td>
+
+<td>${u.username}</td>
+
+<td>${u.email}</td>
+
+<td>
+
+<span
+class="role ${u.role.toLowerCase()}">
+${u.role}
+</span>
+
+</td>
+
+<td>
+
+<div class="actions">
+
+<button
+class="btn small edit"
+onclick="edit(${u.id})">
+
+Edit
+
+</button>
+
+<button
+class="btn small delete"
+onclick="hapus(${u.id})">
+
+Hapus
+
+</button>
+
+</div>
+
+</td>
+
+</tr>
+
+`).join("")
+:
+`<tr>
+<td colspan=5 class="empty">
+Tidak ada data
+</td>
+</tr>`
+
+total.innerText=
+users.length
+
+admins.innerText=
+users.filter(
+x=>x.role==="Admin"
+).length
+
+usersStat=
+users.filter(
+x=>x.role==="User"
+).length
+
+document.getElementById(
+"users"
+).innerText=
+usersStat
+
+}
+
+}
+
+async function submit(e){
+
+e.preventDefault()
+
+let users=
+await Store.get()
+
+let obj={
+
+id:
+id.value
+?
+Number(id.value)
+:
+Date.now(),
+
+username:
+username.value,
+
+email:
+email.value,
+
+role:
+role.value
+
+}
+
+if(id.value){
+
+users=
+users.map(
+u=>
+u.id==obj.id
+?
+obj
+:
+u
+)
+
+}else{
+
+users.push(obj)
+
+}
+
+Store.save(users)
+
+reset()
+
+UI.render()
+
+}
+
+async function edit(i){
+
+let users=
+await Store.get()
+
+let u=
+users.find(
+x=>x.id===i
+)
+
+id.value=u.id
+username.value=u.username
+email.value=u.email
+role.value=u.role
+
+title.innerText=
+"Edit User"
+
+cancel.style.display=
+"block"
+
+}
+
+async function hapus(i){
+
+if(confirm("Hapus user?")){
+
+let users=
+await Store.get()
+
+Store.save(
+users.filter(
+u=>u.id!==i
+)
+)
+
+UI.render()
+
+}
+
+}
+
+function reset(){
+
+form.reset()
+
+id.value=""
+
+title.innerText=
+"Tambah User"
+
+cancel.style.display=
+"none"
+
+}
+
+form.addEventListener(
+"submit",
+submit
+)
+
+cancel.onclick=reset
+
+search.addEventListener(
+"input",
+UI.render
+)
+
+UI.render()
+
+</script>
+
 </body>
 </html>
